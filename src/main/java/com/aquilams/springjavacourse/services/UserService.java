@@ -1,8 +1,13 @@
 package com.aquilams.springjavacourse.services;
 
 import com.aquilams.springjavacourse.entities.User;
+import com.aquilams.springjavacourse.exceptions.DatabaseException;
+import com.aquilams.springjavacourse.exceptions.ResourceNotFoundException;
 import com.aquilams.springjavacourse.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,7 +25,7 @@ public class UserService {
 
     public User findById(Long id){
         Optional<User> obj = userRepository.findById(id);
-        return obj.get();
+        return obj.orElseThrow(() -> new ResourceNotFoundException(id));
     }
 
     public User insert(User obj){
@@ -28,13 +33,23 @@ public class UserService {
     }
 
     public void delete(Long id){
-        userRepository.deleteById(id);
+        try{
+            userRepository.deleteById(id);
+        }catch (EmptyResultDataAccessException e){
+            throw new ResourceNotFoundException(id);
+        }catch (DataIntegrityViolationException e){
+            throw new DatabaseException(e.getMessage());
+        }
     }
 
     public User update(Long id, User obj){
-        User entity = userRepository.getReferenceById(id);
-        updateData(entity, obj);
-        return userRepository.save(entity);
+        try{
+            User entity = userRepository.getReferenceById(id);
+            updateData(entity, obj);
+            return userRepository.save(entity);
+        }catch (EntityNotFoundException e){
+            throw new ResourceNotFoundException(id);
+        }
     }
 
     private void updateData(User entity, User obj) {
