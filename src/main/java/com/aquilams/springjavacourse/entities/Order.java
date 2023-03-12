@@ -1,11 +1,13 @@
 package com.aquilams.springjavacourse.entities;
 
-import com.aquilams.springjavacourse.entities.entities.OrderStatus;
+import com.aquilams.springjavacourse.entities.enums.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tb_order")
@@ -18,7 +20,17 @@ public class Order implements Serializable {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "GMT")
     private Instant moment;
 
-    private OrderStatus orderStatus;
+    private int orderStatus;
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Payment payment;
+
+    @OneToMany(mappedBy = "id.order")
+    private Set<OrderItem> items = new HashSet<>();
+
+    public Set<OrderItem> getItems(){
+        return items;
+    }
 
     @ManyToOne
     @JoinColumn(name = "client_id")
@@ -30,7 +42,15 @@ public class Order implements Serializable {
         this.id = id;
         this.moment = moment;
         this.client = client;
-        this.orderStatus = orderStatus;
+        setOrderStatus(orderStatus);
+    }
+
+    public Double getTotal(){
+        double sum = 0.0;
+        for( OrderItem x : items){
+            sum += x.getSubTotal();
+        }
+        return sum;
     }
 
     public Long getId() {
@@ -46,11 +66,21 @@ public class Order implements Serializable {
     }
 
     public OrderStatus getOrderStatus() {
-        return orderStatus;
+        return OrderStatus.valueOf(orderStatus);
     }
 
     public void setOrderStatus(OrderStatus orderStatus) {
-        this.orderStatus = orderStatus;
+        if (orderStatus != null){
+            this.orderStatus = orderStatus.getCode();
+        }
+    }
+
+    public Payment getPayment() {
+        return payment;
+    }
+
+    public void setPayment(Payment payment) {
+        this.payment = payment;
     }
 
     public void setMoment(Instant moment) {
